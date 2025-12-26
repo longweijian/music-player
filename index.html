@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>手机音乐播放器</title>
+    
+    <!-- 优化移动设备体验 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    
+    <!-- 微信分享优化 -->
+    <meta name="description" content="分享一个好听的音乐">
+    <meta property="og:title" content="音乐播放器">
+    <meta property="og:description" content="点击播放好听的音乐">
+    <meta property="og:type" content="website">
+    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,12 +30,15 @@
             align-items: center;
             text-align: center;
             color: white;
+            overflow: hidden; /* 防止滚动 */
         }
         
         .container {
             max-width: 90%;
             width: 100%;
             padding: 20px;
+            position: relative;
+            z-index: 2;
         }
         
         h1 {
@@ -106,6 +122,33 @@
             padding-left: 20px;
         }
         
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3;
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating:nth-child(2) {
+            animation-delay: 2s;
+        }
+        
+        .floating:nth-child(3) {
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
         @media (max-width: 768px) {
             h1 {
                 font-size: 1.8em;
@@ -123,11 +166,18 @@
     </style>
 </head>
 <body>
+    <!-- 背景动画元素 -->
+    <div class="background-animation">
+        <div class="floating">🎵</div>
+        <div class="floating">🎶</div>
+        <div class="floating">♫</div>
+    </div>
+    
     <div class="container">
         <h1>🎵 手机音乐播放器 🎵</h1>
         
         <div class="player">
-            <button class="play-btn" onclick="startMusic()">点击播放音乐</button>
+            <button class="play-btn" onclick="startMusic()" id="playButton">点击播放音乐</button>
             
             <div class="music-controls" style="margin-top: 20px;">
                 <button class="control-btn" onclick="togglePlay()">播放/暂停</button>
@@ -143,20 +193,11 @@
             <div class="status" id="status">准备就绪</div>
         </div>
         
-        <div class="instructions">
-            <h3>使用说明:</h3>
-            <ul>
-                <li>点击"点击播放音乐"按钮开始播放音乐</li>
-                <li>音乐将自动循环播放</li>
-                <li>可以使用下方控制按钮进行播放控制</li>
-                <li>请将您的音乐文件放在 music/ 目录下</li>
-                <li>支持的格式: MP3, WAV, OGG</li>
-            </ul>
-        </div>
+
     </div>
     
     <!-- 音频元素 -->
-    <audio id="music-player" loop>
+    <audio id="music-player" loop preload="auto" x5-playsinline="true" playsinline="true">
         <source id="music-source" src="" type="audio/mpeg">
         您的浏览器不支持音频播放。
     </audio>
@@ -172,6 +213,7 @@
         let source = document.getElementById('music-source');
         let statusDiv = document.getElementById('status');
         let currentSongSpan = document.getElementById('current-song');
+        let playButton = document.getElementById('playButton');
         
         // 设置音频元素
         audio.volume = 0.7; // 默认音量70%
@@ -190,42 +232,33 @@
             audio.play().then(() => {
                 statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
                 console.log('音乐开始播放');
+                playButton.textContent = '音乐播放中...';
+                playButton.disabled = true;
+                
+                // 记录播放状态
+                localStorage.setItem('musicPlaying', 'true');
             }).catch(error => {
                 statusDiv.textContent = '播放失败: ' + error.message;
                 console.error('播放失败:', error);
+                
+                // 尝试在用户交互后播放（某些浏览器需要用户交互）
+                setTimeout(() => {
+                    audio.play().then(() => {
+                        statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                        playButton.textContent = '音乐播放中...';
+                        playButton.disabled = true;
+                        localStorage.setItem('musicPlaying', 'true');
+                    }).catch(err => {
+                        statusDiv.textContent = '需要再次点击播放: ' + err.message;
+                    });
+                }, 500);
             });
         }
         
-        // 播放/暂停切换
-        function togglePlay() {
-            if (audio.paused) {
-                audio.play().then(() => {
-                    statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
-                }).catch(error => {
-                    statusDiv.textContent = '播放失败: ' + error.message;
-                    console.error('播放失败:', error);
-                });
-            } else {
-                audio.pause();
-                statusDiv.textContent = '已暂停';
-            }
-        }
+
+
         
-        // 停止音乐
-        function stopMusic() {
-            audio.pause();
-            audio.currentTime = 0; // 重置到开头
-            statusDiv.textContent = '已停止';
-        }
-        
-        // 改变音量
-        function changeVolume(change) {
-            let newVolume = audio.volume + change;
-            if (newVolume < 0) newVolume = 0;
-            if (newVolume > 1) newVolume = 1;
-            audio.volume = newVolume;
-            statusDiv.textContent = '音量: ' + Math.round(newVolume * 100) + '%';
-        }
+
         
         // 获取文件名（不包含路径）
         function getFileName(filePath) {
@@ -240,9 +273,93 @@
         });
         
         // 页面加载完成后的初始化
-        window.onload = function() {
-            statusDiv.textContent = '准备就绪 - 请添加音乐文件到 music/ 目录';
-        };
+        window.addEventListener('load', function() {
+            statusDiv.textContent = '准备就绪 - 点击按钮播放音乐';
+            
+            // 尝试自动播放（在某些浏览器中可能需要用户交互）
+            // 如果之前正在播放，尝试恢复
+            if (localStorage.getItem('musicPlaying') === 'true') {
+                // 延迟一段时间再尝试自动播放
+                setTimeout(() => {
+                    audio.play().then(() => {
+                        statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                        playButton.textContent = '音乐播放中...';
+                        playButton.disabled = true;
+                    }).catch(error => {
+                        console.error('自动播放失败:', error);
+                        // 自动播放失败时，保持按钮可点击
+                        playButton.textContent = '点击播放音乐';
+                        playButton.disabled = false;
+                    });
+                }, 1500); // 延迟1.5秒尝试自动播放
+            }
+        });
+        
+        // 页面可见性API - 处理后台播放
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                // 页面隐藏时，记录播放状态
+                if (!audio.paused) {
+                    localStorage.setItem('musicPlaying', 'true');
+                }
+            } else {
+                // 页面显示时，如果之前在播放，尝试继续播放
+                if (localStorage.getItem('musicPlaying') === 'true') {
+                    setTimeout(() => {
+                        audio.play().then(() => {
+                            statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                            playButton.textContent = '音乐播放中...';
+                            playButton.disabled = true;
+                        }).catch(error => {
+                            console.error('恢复播放失败:', error);
+                            // 如果恢复失败，至少更新状态
+                            statusDiv.textContent = '返回页面 - 点击继续播放';
+                        });
+                    }, 500);
+                }
+            }
+        });
+        
+        // 页面关闭或刷新前的处理
+        window.addEventListener('beforeunload', function() {
+            if (!audio.paused) {
+                localStorage.setItem('musicPlaying', 'true');
+            } else {
+                localStorage.setItem('musicPlaying', 'false');
+            }
+        });
+        
+        // 监听音频暂停事件
+        audio.addEventListener('pause', function() {
+            // 当音频暂停时更新UI
+            if (localStorage.getItem('musicPlaying') === 'true') {
+                // 仅更新UI状态，不自动恢复播放以避免用户体验问题
+                statusDiv.textContent = '音乐已暂停（后台播放可能继续）';
+            }
+        });
+        
+        // 尝试在页面焦点变化时恢复音频播放
+        window.addEventListener('focus', function() {
+            if (localStorage.getItem('musicPlaying') === 'true' && audio.paused) {
+                setTimeout(() => {
+                    audio.play().then(() => {
+                        statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                        playButton.textContent = '音乐播放中...';
+                        playButton.disabled = true;
+                    }).catch(error => {
+                        console.error('焦点恢复播放失败:', error);
+                    });
+                }, 300);
+            }
+        });
+        
+        // 防止页面被意外关闭
+        window.addEventListener('beforeunload', function(e) {
+            if (localStorage.getItem('musicPlaying') === 'true') {
+                e.preventDefault();
+                e.returnValue = '音乐正在播放，确定要离开吗？';
+            }
+        });
     </script>
 </body>
 </html>
