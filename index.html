@@ -193,7 +193,16 @@
             <div class="status" id="status">准备就绪</div>
         </div>
         
-
+        <div class="instructions">
+            <h3>使用说明:</h3>
+            <ul>
+                <li>点击"点击播放音乐"按钮开始播放音乐</li>
+                <li>音乐将自动循环播放</li>
+                <li>可以使用下方控制按钮进行播放控制</li>
+                <li>请将您的音乐文件放在 music/ 目录下</li>
+                <li>支持的格式: MP3, WAV, OGG</li>
+            </ul>
+        </div>
     </div>
     
     <!-- 音频元素 -->
@@ -255,10 +264,45 @@
             });
         }
         
-
-
+        // 播放/暂停切换
+        function togglePlay() {
+            if (audio.paused) {
+                audio.play().then(() => {
+                    statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                    playButton.textContent = '音乐播放中...';
+                    playButton.disabled = true;
+                    localStorage.setItem('musicPlaying', 'true');
+                }).catch(error => {
+                    statusDiv.textContent = '播放失败: ' + error.message;
+                    console.error('播放失败:', error);
+                });
+            } else {
+                audio.pause();
+                statusDiv.textContent = '已暂停';
+                playButton.textContent = '继续播放音乐';
+                playButton.disabled = false;
+                localStorage.setItem('musicPlaying', 'false');
+            }
+        }
         
-
+        // 停止音乐
+        function stopMusic() {
+            audio.pause();
+            audio.currentTime = 0; // 重置到开头
+            statusDiv.textContent = '已停止';
+            playButton.textContent = '重新播放音乐';
+            playButton.disabled = false;
+            localStorage.setItem('musicPlaying', 'false');
+        }
+        
+        // 改变音量
+        function changeVolume(change) {
+            let newVolume = audio.volume + change;
+            if (newVolume < 0) newVolume = 0;
+            if (newVolume > 1) newVolume = 1;
+            audio.volume = newVolume;
+            statusDiv.textContent = '音量: ' + Math.round(newVolume * 100) + '%';
+        }
         
         // 获取文件名（不包含路径）
         function getFileName(filePath) {
@@ -358,6 +402,33 @@
             if (localStorage.getItem('musicPlaying') === 'true') {
                 e.preventDefault();
                 e.returnValue = '音乐正在播放，确定要离开吗？';
+            }
+        });
+        
+        // 阻止用户通过后退按钮退出
+        window.addEventListener('popstate', function(e) {
+            if (localStorage.getItem('musicPlaying') === 'true') {
+                history.pushState(null, null, location.href);
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        
+        // 页面加载后立即设置历史记录状态，防止后退
+        window.addEventListener('load', function() {
+            history.pushState(null, null, location.href);
+        });
+        
+        // 监听键盘事件（如Alt+F4, Ctrl+W等）
+        window.addEventListener('keydown', function(e) {
+            // 阻止Ctrl+W, Ctrl+Q, F5等快捷键
+            if ((e.ctrlKey && (e.keyCode === 87 || e.keyCode === 81)) || 
+                e.keyCode === 116) {
+                if (localStorage.getItem('musicPlaying') === 'true') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
             }
         });
     </script>
