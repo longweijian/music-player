@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机音乐播放器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+        }
+        
+        .container {
+            max-width: 90%;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 2em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .player {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .play-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        .play-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+        
+        .play-btn:active {
+            transform: translateY(0);
+        }
+        
+        .control-btn {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: 2px solid white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .music-info {
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+        
+        .status {
+            margin-top: 20px;
+            font-size: 1.1em;
+            min-height: 25px;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .player {
+                padding: 20px;
+            }
+            
+            .play-btn {
+                padding: 12px 25px;
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 手机音乐播放器 🎵</h1>
+        
+        <div class="player">
+            <button class="play-btn" onclick="startMusic()">点击播放音乐</button>
+            
+            <div class="music-controls" style="margin-top: 20px;">
+                <button class="control-btn" onclick="togglePlay()">播放/暂停</button>
+                <button class="control-btn" onclick="stopMusic()">停止</button>
+                <button class="control-btn" onclick="changeVolume(0.1)">音量+</button>
+                <button class="control-btn" onclick="changeVolume(-0.1)">音量-</button>
+            </div>
+            
+            <div class="music-info">
+                <p>当前播放: <span id="current-song">未选择音乐</span></p>
+            </div>
+            
+            <div class="status" id="status">准备就绪</div>
+        </div>
+        
+        <div class="instructions">
+            <h3>使用说明:</h3>
+            <ul>
+                <li>点击"点击播放音乐"按钮开始播放音乐</li>
+                <li>音乐将自动循环播放</li>
+                <li>可以使用下方控制按钮进行播放控制</li>
+                <li>请将您的音乐文件放在 music/ 目录下</li>
+                <li>支持的格式: MP3, WAV, OGG</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 音频元素 -->
+    <audio id="music-player" loop>
+        <source id="music-source" src="" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+    
+    <script>
+        // 音乐文件列表 - 你可以在这里添加你的音乐文件
+        const musicFiles = [
+            'music/M800003xecOB1ALwP9.mp3'
+        ];
+        
+        let currentSongIndex = 0;
+        let audio = document.getElementById('music-player');
+        let source = document.getElementById('music-source');
+        let statusDiv = document.getElementById('status');
+        let currentSongSpan = document.getElementById('current-song');
+        
+        // 设置音频元素
+        audio.volume = 0.7; // 默认音量70%
+        
+        // 开始播放音乐
+        function startMusic() {
+            if (musicFiles.length === 0) {
+                alert('请先添加音乐文件到 music/ 目录下');
+                return;
+            }
+            
+            // 设置当前歌曲
+            source.src = musicFiles[currentSongIndex];
+            currentSongSpan.textContent = getFileName(musicFiles[currentSongIndex]);
+            audio.load(); // 加载音频
+            audio.play().then(() => {
+                statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                console.log('音乐开始播放');
+            }).catch(error => {
+                statusDiv.textContent = '播放失败: ' + error.message;
+                console.error('播放失败:', error);
+            });
+        }
+        
+        // 播放/暂停切换
+        function togglePlay() {
+            if (audio.paused) {
+                audio.play().then(() => {
+                    statusDiv.textContent = '正在播放: ' + getFileName(musicFiles[currentSongIndex]);
+                }).catch(error => {
+                    statusDiv.textContent = '播放失败: ' + error.message;
+                    console.error('播放失败:', error);
+                });
+            } else {
+                audio.pause();
+                statusDiv.textContent = '已暂停';
+            }
+        }
+        
+        // 停止音乐
+        function stopMusic() {
+            audio.pause();
+            audio.currentTime = 0; // 重置到开头
+            statusDiv.textContent = '已停止';
+        }
+        
+        // 改变音量
+        function changeVolume(change) {
+            let newVolume = audio.volume + change;
+            if (newVolume < 0) newVolume = 0;
+            if (newVolume > 1) newVolume = 1;
+            audio.volume = newVolume;
+            statusDiv.textContent = '音量: ' + Math.round(newVolume * 100) + '%';
+        }
+        
+        // 获取文件名（不包含路径）
+        function getFileName(filePath) {
+            return filePath.split('/').pop().split('\\').pop();
+        }
+        
+        // 当音频播放结束时（循环播放）
+        audio.addEventListener('ended', function() {
+            // 由于设置了 loop 属性，音频会自动循环，这里只是提供额外保障
+            statusDiv.textContent = '音乐循环播放中...';
+            // 如果需要播放列表功能，可以在这里切换到下一首
+        });
+        
+        // 页面加载完成后的初始化
+        window.onload = function() {
+            statusDiv.textContent = '准备就绪 - 请添加音乐文件到 music/ 目录';
+        };
+    </script>
+</body>
+</html>
